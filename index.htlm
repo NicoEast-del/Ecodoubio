@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Ecodoubio – Grand Défi Solaire 20 ans</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:linear-gradient(135deg,#1B5E20,#2E7D32);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Arial,sans-serif;color:#fff;padding:12px;}
+  button{cursor:pointer;font-family:Arial,sans-serif;touch-action:manipulation;}
+  input{font-family:Arial,sans-serif;}
+  input::placeholder{color:rgba(255,255,255,0.5);}
+  .hidden{display:none!important;}
+  .btn-yellow{padding:14px 36px;background:#FFD600;color:#1B5E20;border:none;border-radius:12px;font-size:17px;font-weight:bold;}
+  .btn-outline{padding:12px 24px;background:transparent;border:2px solid #fff;border-radius:10px;font-size:15px;color:#fff;}
+  .rank-box{background:rgba(255,255,255,0.08);border:1px solid transparent;border-radius:8px;padding:6px 10px;font-size:12px;text-align:center;}
+  .rank-box.active{background:rgba(255,214,0,0.25);border-color:#FFD600;}
+
+  /* Canvas wrapper scales to screen */
+  #game-wrapper{display:flex;flex-direction:column;align-items:center;width:100%;max-width:800px;}
+  #canvas-container{position:relative;width:100%;background:#000;}
+  #canvas{width:100%;height:auto;display:block;border:3px solid #1B5E20;}
+
+  /* Touch controls */
+  #touch-controls{display:none;width:100%;background:#1a3a1a;padding:8px 12px;border:3px solid #1B5E20;border-top:none;border-radius:0 0 8px 8px;}
+  #touch-controls.visible{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .touch-btn{background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:12px;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;touch-action:none;transition:background .1s;}
+  .touch-btn:active,.touch-btn.pressed{background:rgba(255,214,0,0.4);border-color:#FFD600;}
+  #btn-left{width:60px;height:56px;}
+  #btn-right{width:60px;height:56px;}
+  #btn-jump{width:68px;height:56px;font-size:26px;}
+  #btn-grab{width:68px;height:56px;font-size:20px;background:rgba(255,100,0,0.2);}
+  .left-group{display:flex;gap:8px;}
+  .right-group{display:flex;gap:8px;}
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="screen-intro" style="text-align:center;max-width:480px;width:100%">
+  <div style="font-size:52px;margin-bottom:4px">☀️</div>
+  <h1 style="font-size:28px;color:#FFD600;margin-bottom:2px;text-shadow:0 2px 8px rgba(0,0,0,.6)">ECODOUBIO</h1>
+  <p style="color:#A5D6A7;font-size:13px;margin-bottom:8px">Panneaux Photovoltaïques</p>
+  <div style="background:rgba(255,214,0,.15);border:2px solid #FFD600;border-radius:12px;padding:8px 16px;margin-bottom:16px;display:inline-block">
+    <span style="font-size:20px;font-weight:bold;color:#FFD600">🎉 20 ans d'Ecodoubio 🎉</span>
+  </div>
+  <h2 style="font-size:18px;margin-bottom:8px">Le Grand Défi Solaire</h2>
+  <p style="color:#C8E6C9;font-size:14px;margin-bottom:24px">
+    Tu as <strong style="color:#FFD600">20 secondes</strong> pour marquer le plus de buts avec le soleil !<br/>
+    Les meilleurs scores remportent un prix 🎁
+  </p>
+  <button class="btn-yellow" onclick="showForm()">Je participe ! →</button>
+</div>
+
+<!-- FORM -->
+<div id="screen-form" class="hidden" style="text-align:center;max-width:380px;width:100%">
+  <div style="font-size:36px;margin-bottom:8px">📝</div>
+  <h2 style="font-size:20px;margin-bottom:4px">Avant de jouer…</h2>
+  <p style="color:#A5D6A7;font-size:13px;margin-bottom:16px">Renseignez vos coordonnées pour figurer au classement</p>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px">
+    <input id="inp-pseudo" type="text" placeholder="Votre prénom *" oninput="checkForm()" autocomplete="given-name"
+      style="padding:12px 16px;border-radius:8px;border:2px solid #4CAF50;background:rgba(255,255,255,.1);color:#fff;font-size:16px;outline:none"/>
+    <input id="inp-email" type="email" placeholder="Votre email *" oninput="checkForm()" autocomplete="email"
+      style="padding:12px 16px;border-radius:8px;border:2px solid #4CAF50;background:rgba(255,255,255,.1);color:#fff;font-size:16px;outline:none"/>
+  </div>
+  <p style="font-size:11px;color:#81C784;margin-bottom:16px">🔒 Données utilisées uniquement pour ce concours Ecodoubio.</p>
+  <button id="btn-play" class="btn-yellow" onclick="startGame()" disabled style="opacity:.5;transition:opacity .3s">C'est parti ! ☀️</button>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="hidden">
+  <div id="game-wrapper">
+    <!-- HUD -->
+    <div id="hud" style="background:#1B5E20;border-radius:12px 12px 0 0;width:100%;padding:8px 16px;display:flex;align-items:center;gap:12px">
+      <span id="hud-pseudo" style="font-size:13px;color:#A5D6A7;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👤</span>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div style="width:100%;height:10px;background:rgba(0,0,0,.3);border-radius:5px;overflow:hidden">
+          <div id="timer-bar" style="height:100%;width:100%;background:#4CAF50;transition:width 1s linear,background .5s;border-radius:5px"></div>
+        </div>
+        <span id="timer-text" style="font-size:20px;font-family:monospace;font-weight:bold;color:#4CAF50">20s</span>
+      </div>
+      <div style="text-align:right">
+        <span style="font-size:11px;color:#A5D6A7">Buts</span><br/>
+        <span id="score-display" style="font-size:26px;font-weight:bold;color:#FFD600">0</span>
+      </div>
+    </div>
+    <!-- Canvas -->
+    <div id="canvas-container">
+      <canvas id="canvas" width="800" height="400"></canvas>
+    </div>
+    <!-- Touch controls (shown on mobile) -->
+    <div id="touch-controls">
+      <div class="left-group">
+        <div class="touch-btn" id="btn-left">◀</div>
+        <div class="touch-btn" id="btn-right">▶</div>
+      </div>
+      <div class="touch-btn" id="btn-grab">🤜<br/><span style="font-size:10px">Attraper</span></div>
+      <div class="right-group">
+        <div class="touch-btn" id="btn-jump">⬆️<br/><span style="font-size:11px">Sauter</span></div>
+      </div>
+    </div>
+    <p id="keyboard-hint" style="margin-top:6px;font-size:11px;color:#A5D6A7">← → bouger • ↑ sauter • ↓ attraper</p>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" class="hidden" style="text-align:center;max-width:440px;width:100%">
+  <div style="background:linear-gradient(135deg,#1B5E20,#2E7D32);border:3px solid #FFD600;border-radius:20px;padding:24px 24px;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+    <div style="font-size:12px;color:#A5D6A7;margin-bottom:4px">🎉 20 ans d'Ecodoubio • Grand Défi Solaire</div>
+    <div id="res-emoji" style="font-size:38px;margin:6px 0">🏆</div>
+    <div id="res-pseudo" style="font-size:20px;font-weight:bold;color:#FFD600;margin-bottom:2px"></div>
+    <div id="res-rank" style="font-size:14px;color:#C8E6C9;margin-bottom:14px"></div>
+    <div style="background:rgba(0,0,0,.3);border-radius:12px;padding:14px 20px;margin-bottom:14px">
+      <div style="font-size:12px;color:#A5D6A7;margin-bottom:4px">Score en 20 secondes</div>
+      <div id="res-score" style="font-size:52px;font-weight:bold;color:#FFD600;line-height:1">0</div>
+      <div id="res-label" style="font-size:15px;color:#fff">but marqué ☀️</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
+      <div class="rank-box" id="rb0"><div>🌱</div><div style="color:#FFD600">1-2</div><div style="color:#A5D6A7;font-size:10px">Apprenti</div></div>
+      <div class="rank-box" id="rb1"><div>☀️</div><div style="color:#FFD600">3-5</div><div style="color:#A5D6A7;font-size:10px">Confirmé</div></div>
+      <div class="rank-box" id="rb2"><div>⭐</div><div style="color:#FFD600">6-9</div><div style="color:#A5D6A7;font-size:10px">Expert</div></div>
+      <div class="rank-box" id="rb3"><div>🏆</div><div style="color:#FFD600">10+</div><div style="color:#A5D6A7;font-size:10px">Champion</div></div>
+    </div>
+    <div style="font-size:12px;color:#81C784">📸 Capture d'écran et partage avec <strong>#Ecodoubio20ans</strong></div>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:center">
+    <button class="btn-yellow" style="padding:12px 22px;font-size:15px;font-weight:bold;border:none;border-radius:10px" onclick="startGame()">🔄 Rejouer</button>
+    <button class="btn-outline" onclick="showIntro()">🏠 Accueil</button>
+  </div>
+</div>
+
+<script>
+const W=800,H=400,GH=80,SR=40,BR=14,GWIDTH=80,GHEIGHT=120;
+const GRAV=0.6,SPD=5,JUMP=-12,DAMP=0.99,BDAMP=0.8,MAXSPD=13,CTIME=20;
+const SHEETS_URL=https://script.google.com/macros/s/AKfycbz4HGQw7ioEKUjj8PJFFGxi5gd_2txA6cU1Q4EYft6qBNA2EFHfyTETxznALT1tWa_p/exec;
+
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const keys={};
+let pseudo='',emailVal='',goals=0,timeLeft=CTIME,gameRunning=false,animId=null,timerInterval=null;
+let sunRot=0,flashTimer=0,gs=null;
+
+// ── Detect touch device ──
+const isTouchDevice=()=>('ontouchstart' in window)||navigator.maxTouchPoints>0;
+
+// ── Touch button state ──
+const touchKeys={left:false,right:false,jump:false,grab:false};
+
+function bindTouchBtn(id,key){
+  const el=document.getElementById(id);
+  const press=e=>{e.preventDefault();touchKeys[key]=true;el.classList.add('pressed');};
+  const release=e=>{e.preventDefault();touchKeys[key]=false;el.classList.remove('pressed');};
+  el.addEventListener('touchstart',press,{passive:false});
+  el.addEventListener('touchend',release,{passive:false});
+  el.addEventListener('touchcancel',release,{passive:false});
+  // Also mouse for desktop testing
+  el.addEventListener('mousedown',press);
+  el.addEventListener('mouseup',release);
+  el.addEventListener('mouseleave',release);
+}
+
+bindTouchBtn('btn-left','left');
+bindTouchBtn('btn-right','right');
+bindTouchBtn('btn-jump','jump');
+bindTouchBtn('btn-grab','grab');
+
+// ── Keyboard ──
+window.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;e.preventDefault();keys[e.key.toLowerCase()]=true;});
+window.addEventListener('keyup',e=>{if(e.target.tagName==='INPUT')return;e.preventDefault();keys[e.key.toLowerCase()]=false;});
+
+// Merge keyboard + touch
+function isLeft(){return keys['arrowleft']||touchKeys.left;}
+function isRight(){return keys['arrowright']||touchKeys.right;}
+function isJump(){return keys['arrowup']||touchKeys.jump;}
+function isGrab(){return keys['arrowdown']||touchKeys.grab;}
+
+// ── Screens ──
+function show(id){['intro','form','game','result'].forEach(s=>document.getElementById('screen-'+s).classList.toggle('hidden',s!==id));
+  if(id==='game'){
+    if(isTouchDevice()){
+      document.getElementById('touch-controls').classList.add('visible');
+      document.getElementById('keyboard-hint').style.display='none';
+    }
+  }
+}
+function showIntro(){show('intro');}
+function showForm(){show('form');}
+function checkForm(){
+  const p=document.getElementById('inp-pseudo').value.trim();
+  const e=document.getElementById('inp-email').value.trim();
+  const btn=document.getElementById('btn-play');
+  btn.disabled=!(p&&e);btn.style.opacity=(p&&e)?'1':'0.5';
+}
+
+// ── Google Sheets ──
+function sendToSheets(ps,em,score,rang){
+  if(!SHEETS_URL||SHEETS_URL==='https://script.google.com/macros/s/AKfycbz4HGQw7ioEKUjj8PJFFGxi5gd_2txA6cU1Q4EYft6qBNA2EFHfyTETxznALT1tWa_p/exec')return;
+  fetch(SHEETS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({pseudo:ps,email:em,score,rang})}).catch(()=>{});
+}
+
+// ── Game state ──
+function initState(){
+  return{
+    left:{x:200,y:H-GH,vx:0,vy:0,isGrabbing:false,hasBall:false,glt:0,targetX:200,dc:0,stable:true,lastBY:H/2,stuck:0},
+    right:{x:600,y:H-GH,vx:0,vy:0,isGrabbing:false,hasBall:false,glt:0},
+    ball:{x:W/2,y:150,vx:0,vy:0,gb:null,ga:0,gav:0}
+  };
+}
+function resetPos(){
+  Object.assign(gs.left,{x:200,y:H-GH,vx:0,vy:0,isGrabbing:false,hasBall:false,glt:0,targetX:200,dc:0,stable:true});
+  Object.assign(gs.right,{x:600,y:H-GH,vx:0,vy:0,isGrabbing:false,hasBall:false,glt:0});
+  Object.assign(gs.ball,{x:W/2,y:150,vx:0,vy:0,gb:null,ga:0,gav:0});
+}
+
+function startGame(){
+  pseudo=document.getElementById('inp-pseudo').value.trim();
+  emailVal=document.getElementById('inp-email').value.trim();
+  gs=initState();goals=0;timeLeft=CTIME;sunRot=0;flashTimer=0;
+  document.getElementById('hud-pseudo').textContent='👤 '+pseudo;
+  updateHUD();show('game');gameRunning=true;
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(tick,1000);
+  if(animId)cancelAnimationFrame(animId);
+  animId=requestAnimationFrame(loop);
+}
+
+function tick(){
+  timeLeft--;updateHUD();
+  if(timeLeft<=0)endGame();
+}
+
+function updateHUD(){
+  const pct=timeLeft/CTIME;
+  const color=pct>0.5?'#4CAF50':pct>0.25?'#FFD600':'#F44336';
+  document.getElementById('timer-bar').style.width=(pct*100)+'%';
+  document.getElementById('timer-bar').style.background=color;
+  document.getElementById('timer-text').textContent=timeLeft+'s';
+  document.getElementById('timer-text').style.color=color;
+  document.getElementById('score-display').textContent=goals;
+}
+
+function endGame(){
+  gameRunning=false;clearInterval(timerInterval);cancelAnimationFrame(animId);
+  showResult();
+}
+
+function getRank(g){
+  if(g>=10)return{e:'🏆',l:'Champion Solaire !',i:3};
+  if(g>=6)return{e:'⭐',l:'Expert Photovoltaïque',i:2};
+  if(g>=3)return{e:'☀️',l:'Installateur Confirmé',i:1};
+  return{e:'🌱',l:'Apprenti Solaire',i:0};
+}
+
+function showResult(){
+  const r=getRank(goals);
+  document.getElementById('res-emoji').textContent=r.e;
+  document.getElementById('res-pseudo').textContent=pseudo;
+  document.getElementById('res-rank').textContent=r.l;
+  document.getElementById('res-score').textContent=goals;
+  document.getElementById('res-label').textContent='but'+(goals>1?'s':'')+' marqué'+(goals>1?'s':'')+' ☀️';
+  [0,1,2,3].forEach(i=>document.getElementById('rb'+i).classList.toggle('active',i===r.i));
+  sendToSheets(pseudo,emailVal,goals,r.l);
+  show('result');
+}
+
+// ── AI ──
+function updateAI(){
+  const ai=gs.left,ball=gs.ball;
+  if(ai.dc>0){ai.dc--;const d=ai.targetX-ai.x;ai.vx=Math.abs(d)>10?Math.sign(d)*SPD*Math.min(Math.abs(d)/50,1):0;return;}
+  if(ai.stable){ai.targetX=200;ai.vx=0;if(Math.abs(ball.x-ai.x)<150){ai.stable=false;ai.dc=15;}return;}
+  const OGX=W-GWIDTH/2;
+  let tgt=ai.targetX,jump=false;
+  const distOpp=Math.abs(ball.x-OGX),aiDist=Math.abs(ai.x-ball.x);
+  const ballH=H-GH-ball.y,movL=ball.vx<-1;
+  const stk=Math.abs(ball.y-ai.lastBY)<5&&Math.abs(ball.vx)<2;
+  ai.stuck=stk?(ai.stuck+1):0;ai.lastBY=ball.y;
+  if(distOpp<400&&!movL){tgt=ball.x-35;if(aiDist<100&&ballH>30&&ai.y>=H-GH-1)jump=true;if(ai.stuck>25){jump=true;tgt=ball.x-40;}}
+  else if(ball.x<W*0.4||movL){tgt=Math.max(ball.x-10,SR);if(aiDist<120&&ballH<100)jump=true;}
+  else{tgt=W*0.35;}
+  if(Math.abs(tgt-ai.targetX)>15){ai.targetX=tgt;ai.dc=10;}
+  const d=ai.targetX-ai.x;ai.vx=Math.abs(d)>10?Math.sign(d)*SPD*Math.min(Math.abs(d)/50,1):0;
+  if(jump&&ai.vy===0)ai.vy=JUMP;
+}
+
+// ── Score goal ──
+function scoreGoal(side){
+  if(side==='right'){goals++;flashTimer=24;updateHUD();}
+  resetPos();
+}
+
+// ── Physics ──
+function updatePhysics(){
+  gs.right.vx=isLeft()?-SPD:isRight()?SPD:0;
+  if(isJump()&&gs.right.y>=H-GH-1&&!gs.right.isGrabbing)gs.right.vy=JUMP;
+  gs.right.isGrabbing=isGrab();
+  updateAI();
+
+  [gs.left,gs.right].forEach((sl,idx)=>{
+    sl.vy+=GRAV;sl.x+=sl.vx;sl.y+=sl.vy;
+    if(sl.x<SR)sl.x=SR;if(sl.x>W-SR)sl.x=W-SR;
+    if(sl.y>H-GH){sl.y=H-GH;sl.vy=0;}
+    const isL=idx===0,inGoal=(isL&&sl.x<GWIDTH)||(!isL&&sl.x>W-GWIDTH);
+    if(inGoal){sl.glt+=1/60;if(sl.glt>=1)scoreGoal(isL?'right':'left');}else sl.glt=0;
+  });
+
+  const b=gs.ball;
+  if(b.gb){
+    const gr=b.gb==='left'?gs.left:gs.right;
+    b.gav+=-gr.vx*0.008*(b.gb==='left'?1:-1);b.gav*=0.85;b.ga+=b.gav;
+    const hd=SR+BR-5;b.x=gr.x+Math.cos(b.ga)*hd;b.y=gr.y+Math.sin(b.ga)*hd;
+    b.vx=gr.vx;b.vy=gr.vy;
+    if(!gr.isGrabbing){const sp=Math.abs(b.gav)*20;b.vx=gr.vx*1.5+Math.cos(b.ga)*(3+sp);b.vy=gr.vy-2+Math.sin(b.ga)*sp*0.3;b.gb=null;b.ga=0;b.gav=0;gr.hasBall=false;}
+  } else {b.vy+=GRAV;b.vx*=DAMP;b.x+=b.vx;b.y+=b.vy;}
+
+  if(b.x<BR){b.x=BR;b.vx=-b.vx*BDAMP;}if(b.x>W-BR){b.x=W-BR;b.vx=-b.vx*BDAMP;}
+  if(b.y>H-GH-BR){b.y=H-GH-BR;b.vy=-b.vy*BDAMP;}if(b.y<BR){b.y=BR;b.vy=-b.vy*BDAMP;}
+  if(b.x<=BR&&b.y>H-GH-GHEIGHT)scoreGoal('right');
+  else if(b.x>=W-BR&&b.y>H-GH-GHEIGHT)scoreGoal('left');
+  sunRot+=b.vx*0.04;
+  if(flashTimer>0)flashTimer--;
+
+  [gs.left,gs.right].forEach((sl,idx)=>{
+    const sn=idx===0?'left':'right',ot=idx===0?gs.right:gs.left;
+    const dx=b.x-sl.x,dy=b.y-sl.y,dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<SR+BR){
+      if(b.gb&&b.gb!==sn){if(Math.sqrt(sl.vx**2+sl.vy**2)>2||Math.abs(sl.vy)>5){b.gb=null;b.ga=0;b.gav=0;ot.hasBall=false;const a=Math.atan2(dy,dx);b.vx=Math.cos(a)*8+sl.vx;b.vy=Math.sin(a)*8+sl.vy;}}
+      else if(sl.isGrabbing&&!b.gb){b.gb=sn;b.ga=Math.atan2(dy,dx);b.gav=0;sl.hasBall=true;}
+      else if(!b.gb){const a=Math.atan2(dy,dx);if(b.y<sl.y||Math.abs(a)<Math.PI*0.5){b.x=sl.x+Math.cos(a)*(SR+BR);b.y=sl.y+Math.sin(a)*(SR+BR);const sp=Math.sqrt(b.vx**2+b.vy**2);b.vx=Math.cos(a)*sp*1.5+sl.vx*0.5;b.vy=Math.sin(a)*sp*1.5+sl.vy*0.5;const ns=Math.sqrt(b.vx**2+b.vy**2);if(ns>MAXSPD){b.vx*=MAXSPD/ns;b.vy*=MAXSPD/ns;}}}
+    }
+  });
+}
+
+// ── Draw panel ──
+function drawPanel(sl,facingRight,color,accent){
+  ctx.save();ctx.fillStyle='#555';ctx.beginPath();ctx.roundRect(sl.x-10,sl.y-12,20,14,3);ctx.fill();
+  ctx.translate(sl.x,sl.y-12);ctx.rotate(facingRight?0.22:-0.22);
+  const pw=64,ph=36;ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(-pw/2,-ph,pw,ph,4);ctx.fill();
+  ctx.strokeStyle=accent;ctx.lineWidth=1.2;
+  for(let c=1;c<3;c++){ctx.beginPath();ctx.moveTo(-pw/2+(pw/3)*c,-ph+2);ctx.lineTo(-pw/2+(pw/3)*c,-2);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(-pw/2+2,-ph/2-2);ctx.lineTo(pw/2-2,-ph/2-2);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.roundRect(-pw/2+4,-ph+4,pw/2-6,ph/2-4,2);ctx.fill();
+  ctx.restore();
+}
+
+// ── Draw sun ──
+function drawSun(b){
+  ctx.save();ctx.translate(b.x,b.y);ctx.rotate(sunRot);
+  ctx.strokeStyle='#FFA500';ctx.lineWidth=2.5;
+  for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;ctx.beginPath();ctx.moveTo(Math.cos(a)*(BR+1),Math.sin(a)*(BR+1));ctx.lineTo(Math.cos(a)*(BR+7),Math.sin(a)*(BR+7));ctx.stroke();}
+  const g=ctx.createRadialGradient(0,0,0,0,0,BR);g.addColorStop(0,'#FFF176');g.addColorStop(0.6,'#FFD600');g.addColorStop(1,'#FFA000');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,BR,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#E65100';ctx.beginPath();ctx.arc(-4,-3,2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(4,-3,2,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#E65100';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,1,4,0.2,Math.PI-0.2);ctx.stroke();
+  ctx.restore();
+}
+
+// ── Main draw ──
+function draw(){
+  const sky=ctx.createLinearGradient(0,0,0,H-GH);sky.addColorStop(0,'#87CEEB');sky.addColorStop(1,'#E0F4FF');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H-GH);
+  const grd=ctx.createLinearGradient(0,H-GH,0,H);grd.addColorStop(0,'#4CAF50');grd.addColorStop(0.15,'#388E3C');grd.addColorStop(0.16,'#5D4037');grd.addColorStop(1,'#4E342E');
+  ctx.fillStyle=grd;ctx.fillRect(0,H-GH,W,GH);
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  [[120,40,30],[160,35,22],[100,45,18],[600,55,28],[640,50,20],[580,58,15]].forEach(([cx,cy,r])=>{ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();});
+  ctx.save();ctx.globalAlpha=0.12;ctx.fillStyle='#1B5E20';ctx.font='bold 26px Arial';ctx.textAlign='center';
+  ctx.fillText('ECODOUBIO',W/2,H/2-10);ctx.font='13px Arial';ctx.fillText('20 ans • Panneaux Photovoltaïques',W/2,H/2+12);ctx.restore();
+  const drawNet=(x,flip)=>{
+    const gx=flip?x-GWIDTH:x;ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;
+    for(let i=0;i<=GWIDTH;i+=10){ctx.beginPath();ctx.moveTo(gx+i,H-GH-GHEIGHT);ctx.lineTo(gx+i,H-GH);ctx.stroke();}
+    for(let j=H-GH-GHEIGHT;j<=H-GH;j+=10){ctx.beginPath();ctx.moveTo(gx,j);ctx.lineTo(gx+GWIDTH,j);ctx.stroke();}
+    ctx.strokeStyle='#BDBDBD';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(gx+GWIDTH/2,H-GH-GHEIGHT);ctx.lineTo(gx+GWIDTH/2,H-GH);ctx.stroke();
+  };
+  drawNet(0,false);drawNet(W,true);
+  if(flashTimer>0){ctx.save();ctx.globalAlpha=0.25;ctx.fillStyle='#FFD600';ctx.fillRect(0,0,W,H);ctx.restore();}
+  drawPanel(gs.left,true,'#1565C0','#0D47A1');
+  drawPanel(gs.right,false,'#E65100','#BF360C');
+  drawSun(gs.ball);
+}
+
+let lastT=0;
+function loop(t){
+  if(!gameRunning)return;
+  if(t-lastT>=1000/60){updatePhysics();draw();lastT=t;}
+  animId=requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
