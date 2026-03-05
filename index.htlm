@@ -132,7 +132,7 @@
 <script>
 const W=800,H=400,GH=80,SR=40,BR=14,GWIDTH=80,GHEIGHT=120;
 const GRAV=0.6,SPD=5,JUMP=-12,DAMP=0.99,BDAMP=0.8,MAXSPD=13,CTIME=20;
-const SHEETS_URL=https://script.google.com/macros/s/AKfycbz4HGQw7ioEKUjj8PJFFGxi5gd_2txA6cU1Q4EYft6qBNA2EFHfyTETxznALT1tWa_p/exec;
+const SHEETS_URL='https://script.google.com/macros/s/AKfycbz4HGQw7ioEKUjj8PJFFGxi5gd_2txA6cU1Q4EYft6qBNA2EFHfyTETxznALT1tWa_p/exec';
 
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
@@ -194,7 +194,7 @@ function checkForm(){
 
 // ── Google Sheets ──
 function sendToSheets(ps,em,score,rang){
-  if(!SHEETS_URL||SHEETS_URL==='https://script.google.com/macros/s/AKfycbz4HGQw7ioEKUjj8PJFFGxi5gd_2txA6cU1Q4EYft6qBNA2EFHfyTETxznALT1tWa_p/exec')return;
+  if(!SHEETS_URL) return;
   fetch(SHEETS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({pseudo:ps,email:em,score,rang})}).catch(()=>{});
 }
 
